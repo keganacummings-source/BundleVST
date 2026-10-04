@@ -43,8 +43,8 @@ const SITE = "https://www.dreamdaw.com/";
 
 function native(name, payload){
   try {
-    if (window.__JUCE__ && window.__JUCE__.backend && window.__JUCE__.backend.invoke)
-      return window.__JUCE__.backend.invoke(name, payload || {});
+    if (window.__JUCE__ && window.__JUCE__.backend && window.__JUCE__.backend.emitEvent)
+      return window.__JUCE__.backend.emitEvent(name, payload || {});
   } catch (e) {}
   return Promise.resolve(null);
 }
@@ -124,21 +124,20 @@ DreamDAWEditor::DreamDAWEditor(DreamDAWProcessor& p)
                  .withNativeIntegrationEnabled()
                  .withResourceProvider([this](const auto& url) { return serve(url); })
                  .withEventListener("openMachine",
-                                    [this](const juce::Array<juce::var>& args, auto complete)
+                                    [this](const juce::var& payload)
                                     {
-                                        auto* obj = args.isEmpty() ? nullptr : args[0].getDynamicObject();
+                                        auto* obj = payload.getDynamicObject();
                                         if (obj != nullptr)
                                         {
                                             auto url = obj->getProperty("url").toString();
                                             if (url.isNotEmpty())
                                                 openMachine(url);
                                         }
-                                        complete(juce::var(true));
                                     })
                  .withEventListener("setSession",
-                                    [this](const juce::Array<juce::var>& args, auto complete)
+                                    [this](const juce::var& payload)
                                     {
-                                        auto* obj = args.isEmpty() ? nullptr : args[0].getDynamicObject();
+                                        auto* obj = payload.getDynamicObject();
                                         if (obj != nullptr)
                                         {
                                             auto dir = juce::File::getSpecialLocation(juce::File::userApplicationDataDirectory)
@@ -147,7 +146,6 @@ DreamDAWEditor::DreamDAWEditor(DreamDAWProcessor& p)
                                             dir.getChildFile("session.json")
                                                 .replaceWithText(juce::JSON::toString(juce::var(obj)));
                                         }
-                                        complete(juce::var(true));
                                     }))
 {
     addAndMakeVisible(browser);

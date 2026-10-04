@@ -17,8 +17,33 @@ jobs:
             artifact: Windows
           - os: macos-latest
             artifact: macOS
+
     steps:
       - uses: actions/checkout@v4
+
+      - name: Install WebView2 SDK (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $ver = "1.0.2849.39"
+          $url = "https://www.nuget.org/api/v2/package/Microsoft.Web.WebView2/$ver"
+          $zip = "webview2.nupkg.zip"
+          Invoke-WebRequest -Uri $url -OutFile $zip
+          New-Item -ItemType Directory -Force -Path third_party/webview2 | Out-Null
+          Expand-Archive -Path $zip -DestinationPath third_party/webview2_pkg -Force
+          if (Test-Path third_party/webview2_pkg/build) {
+            Copy-Item -Recurse -Force third_party/webview2_pkg/build third_party/webview2/
+          } else {
+            Write-Error "WebView2 package layout unexpected"
+            Get-ChildItem -Recurse third_party/webview2_pkg | Select-Object -First 30
+            exit 1
+          }
+          if (-not (Test-Path third_party/webview2/build/native/include/WebView2.h)) {
+            Write-Error "WebView2.h missing after extract"
+            exit 1
+          }
+          Write-Host "WebView2 SDK ready"
+
       - name: Configure
         shell: bash
         run: |
@@ -27,8 +52,10 @@ jobs:
           else
             cmake -B build -DCMAKE_BUILD_TYPE=Release
           fi
+
       - name: Build
         run: cmake --build build --config Release --parallel
+
       - name: Upload VST3
         uses: actions/upload-artifact@v4
         with:

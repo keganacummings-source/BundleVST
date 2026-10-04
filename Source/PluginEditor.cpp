@@ -150,10 +150,10 @@ DreamDAWEditor::DreamDAWEditor(DreamDAWProcessor& p)
 {
     addAndMakeVisible(browser);
     addAndMakeVisible(back);
-    back.onClick = [this] { browser.goToURL(juce::WebBrowserComponent::getResourceProviderRoot()); };
+    back.onClick = [this] { browser.goToURL(juce::String("https://keganacummings-source.github.io/Site/index.html")); };
     setSize(900, 640);
     setResizable(true, true);
-    browser.goToURL(juce::WebBrowserComponent::getResourceProviderRoot());
+    browser.goToURL(juce::String("https://keganacummings-source.github.io/Site/index.html"));
     startTimerHz(15);
 }
 

@@ -1,0 +1,37 @@
+name: Build DREAMDAW VST3
+
+on:
+  push:
+    branches: [main, master]
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build ${{ matrix.artifact }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            artifact: Windows
+          - os: macos-latest
+            artifact: macOS
+    steps:
+      - uses: actions/checkout@v4
+      - name: Configure
+        shell: bash
+        run: |
+          if [ "$RUNNER_OS" = "macOS" ]; then
+            cmake -B build -DCMAKE_BUILD_TYPE=Release "-DCMAKE_OSX_ARCHITECTURES=arm64;x86_64"
+          else
+            cmake -B build -DCMAKE_BUILD_TYPE=Release
+          fi
+      - name: Build
+        run: cmake --build build --config Release --parallel
+      - name: Upload VST3
+        uses: actions/upload-artifact@v4
+        with:
+          name: DREAMDAW-${{ matrix.artifact }}-VST3
+          path: build/DreamDAW_artefacts/Release/VST3/
+          if-no-files-found: error

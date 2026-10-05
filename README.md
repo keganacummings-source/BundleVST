@@ -1,30 +1,22 @@
 # DREAMDAW
 
-One VST3. FL Studio loads this. The user logs in, picks a machine from the **Plugin selector**, and the WebView opens that HTML file from the site. DSP stays in the HTML. Do not port it.
+One instrument VST3. FL Studio loads this. Each instance keeps its own WebView alive after the plugin window is closed, so piano-rack MIDI and the HTML instrument keep running.
 
 Site package: https://github.com/keganacummings-source/Site
 
-Machines live in `Pluggins Folder/*.html`. The selector reads `library.json`. Login uses the same worker DreamShare Lite uses (`action: "login"`, fields `user` and `pass`, token comes back).
+## What changed (2026-10-04)
 
-## UI (optimized)
-
-- Native chrome: only a **Homescreen** button (returns to the selector).
-- Embedded shell: login bar + **Plugin selector** grid. Nothing else.
-- SITE FOLDER button and related local-folder tooling removed from the editor.
-
-## Boot path
-
-1. FL Studio scans `DREAMDAW.vst3` (instrument, stereo out, MIDI in).
-2. Editor opens the room (bundled HTML shell — plugin selector).
-3. Log in. Session is written to `%APPDATA%\DreamDAW\session.json`.
-4. Click a machine. WebView navigates to `https://www.dreamdaw.com/Pluggins%20Folder/<file>`.
-5. Homescreen returns to the selector. The last machine is remembered.
-
-v0.1 loads the live site URL so relative sample paths keep working.
+- The WebView lives on the processor, not the editor. Closing or minimizing the FL plugin window reparents it to an off-screen host instead of destroying it.
+- MIDI is pumped from the processor timer, so piano rack and MIDI keyboards work with the UI closed.
+- Each instance gets its own WebView2 profile (`%APPDATA%\DreamDAW\instances\<id>`). A shared profile was locking the second instance and mixing logins.
+- Machine URL is saved in the plugin state, not a single global file.
+- WebView2 is started with background-throttling disabled. The injected host script resumes AudioContext and does not drop notes when the page is hidden.
+- DreamAXE now exposes `noteOn` / `noteOff` and plays the MIDI note pitch (FL piano rack).
+- Effect-only and non-instrument HTML removed from this build, including DREAMABC.
 
 ## Build
 
-Push this folder to GitHub. `.github/workflows/build.yml` produces the Windows / macOS VST3 artifacts. Same JUCE 8.0.6 fetch as DreamShare Lite.
+Push this folder to GitHub. `.github/workflows/main.yml` produces the Windows VST3.
 
 Local:
 
@@ -35,19 +27,6 @@ cmake --build build --config Release
 
 Windows output: `build/DreamDAW_artefacts/Release/VST3/DREAMDAW.vst3`
 
-Copy that bundle to `C:\Program Files\Common Files\VST3` and rescan in FL Studio. WebView2 runtime is required (already on Windows 11).
+Copy that bundle to `C:\Program Files\Common Files\VST3` and rescan in FL Studio. WebView2 runtime is required.
 
-JUCE is AGPL or commercial. This repo is the source that goes with the binary.
-
-## What an HTML edit has to expose
-
-The injected user script already forwards FL MIDI to a page-level `noteOn(midi, vel)` / `noteOff(midi)`. BetaDREAMSINE.html already has those. Other machines should add the same two names. No other C++ change.
-
-Hearing the machine inside FL (not only in the plugin window) needs the page to push blocks. That is the next hook, not a DSP rewrite.
-
-## Optimized package notes (2026-10-04)
-
-- No Insomnia / INXOMNIA in the plugin selector (removed from library.json and Pluggins Folder).
-- Site download includes DreamShareVst.zip under DownloadVSTFile/Two/ so users can still get the classic DreamShare Lite VST3.
-- Absurd GPT/validation helper files stripped from the deploy tree.
-- This VST shows only the login + Plugin selector screen; machines load live from the site.
+Deploy the Site tree (library.json, index.html, Pluggins Folder) to GitHub Pages / dreamdaw.com so the selector matches this build.

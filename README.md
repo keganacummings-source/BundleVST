@@ -30,3 +30,10 @@ Windows output: `build/DreamDAW_artefacts/Release/VST3/DREAMDAW.vst3`
 Copy that bundle to `C:\Program Files\Common Files\VST3` and rescan in FL Studio. WebView2 runtime is required.
 
 Deploy the Site tree (library.json, index.html, Pluggins Folder) to GitHub Pages / dreamdaw.com so the selector matches this build.
+
+
+## 1.1.0 update
+- Site-backed instrument presets are provided by DREAMDAW's authenticated DreamAPI.
+- Presets are saved per account and instrument, so they survive new FL/VST instances.
+- DREAMAPI presence is shown by the embedded site and uses the live `presence` response.
+- VST editor cleaned up with a larger responsive canvas and clearer DREAMDAW navigation.

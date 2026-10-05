@@ -9,8 +9,9 @@ DreamDAWEditor::DreamDAWEditor(DreamDAWProcessor& p)
     {
         proc.openMachine("https://keganacummings-source.github.io/Site/index.html");
     };
-    setSize(900, 640);
+    setSize(1100, 720);
     setResizable(true, true);
+    setResizeLimits(760, 520, 1800, 1200);
     proc.attachEditor(*this);
     startTimerHz(5);
 }

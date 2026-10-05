@@ -13,7 +13,7 @@ public:
 private:
     void timerCallback() override;
     DreamDAWProcessor& proc;
-    juce::TextButton back { "Homescreen" };
+    juce::TextButton back { "← DREAMDAW" };
     int attachTicks = 0;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(DreamDAWEditor)

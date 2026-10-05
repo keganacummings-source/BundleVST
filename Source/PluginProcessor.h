@@ -40,7 +40,7 @@ public:
     void attachEditor(juce::Component& parent);
     void detachEditor(juce::Component& parent);
     void layoutBrowser(juce::Rectangle<int> bounds);
-    juce::WebBrowserComponent& getBrowser();
+    juce::WebBrowserComponent* getBrowser();
 
     juce::String machineUrl { "https://keganacummings-source.github.io/Site/index.html" };
     juce::String instanceId;
@@ -55,6 +55,7 @@ private:
     std::unique_ptr<HostWindow> host;
     std::unique_ptr<juce::WebBrowserComponent> browser;
     bool browserReady = false;
+    bool pageLoaded = false;
 
     juce::AbstractFifo fifo { 48000 * 8 };
     juce::AudioBuffer<float> ring;

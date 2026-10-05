@@ -91,15 +91,16 @@ static const char* kHostScript = R"JS(
 struct DreamDAWProcessor::HostWindow : public juce::DocumentWindow
 {
     HostWindow()
-        : DocumentWindow("DreamDAWHost", juce::Colours::black, 0)
+        : DocumentWindow({}, juce::Colours::black, 0)
     {
         setUsingNativeTitleBar(false);
         setTitleBarHeight(0);
         setOpaque(true);
-        addToDesktop(0);
-        // Off-screen but visible so WebView2 does not treat the instrument as a background tab.
+        setName({});
+        // Tool window: no taskbar button, no Alt-Tab entry.
+        addToDesktop(juce::ComponentPeer::windowIsTemporary);
         setBounds(-24000, -24000, 640, 480);
-        setVisible(true);
+        setVisible(false);
     }
 
     void closeButtonPressed() override {}
@@ -134,7 +135,7 @@ void DreamDAWProcessor::ensureBrowser()
                         .getChildFile(instanceId);
     userData.createDirectory();
 
-    host = std::make_unique<HostWindow>();
+    host.reset();
     browser = std::make_unique<juce::WebBrowserComponent>(
         juce::WebBrowserComponent::Options{}
             .withBackend(juce::WebBrowserComponent::Options::Backend::webview2)
@@ -170,10 +171,9 @@ void DreamDAWProcessor::ensureBrowser()
                                        return;
                                    pushFromPage(static_cast<const float*>(bin.getData()), frames);
                                }));
-    host->setContentNonOwned(browser.get(), false);
-    browser->setBounds(0, 0, 640, 480);
+    // Do not parent the WebView to a floating window here. FL's editor must be
+    // the first peer, otherwise WebView2 stays on that window and the plugin is blank.
     browser->setVisible(true);
-    browser->goToURL(machineUrl);
     browserReady = true;
 }
 
@@ -291,21 +291,34 @@ void DreamDAWProcessor::attachEditor(juce::Component& parent)
     ensureBrowser();
     if (browser == nullptr)
         return;
-    parent.addAndMakeVisible(browser.get());
+    if (host != nullptr)
+        host->setVisible(false);
+    if (browser->getParentComponent() != &parent)
+        parent.addAndMakeVisible(browser.get());
     browser->setVisible(true);
+    browser->toFront(false);
+    if (!pageLoaded)
+    {
+        browser->goToURL(machineUrl);
+        pageLoaded = true;
+    }
 }
 
 void DreamDAWProcessor::detachEditor(juce::Component& parent)
 {
-    if (browser == nullptr || host == nullptr)
+    if (browser == nullptr)
         return;
-    if (browser->getParentComponent() == &parent)
-    {
-        host->setContentNonOwned(browser.get(), false);
-        browser->setBounds(0, 0, 640, 480);
-        browser->setVisible(true);
-        host->setVisible(true);
-    }
+    if (browser->getParentComponent() != &parent && browser->getParentComponent() != nullptr)
+        return;
+    if (host == nullptr)
+        host = std::make_unique<HostWindow>();
+    host->setContentNonOwned(browser.get(), false);
+    browser->setBounds(0, 0, 640, 480);
+    browser->setVisible(true);
+    // Keep the parked view off-screen and out of Alt-Tab. It only exists so
+    // closing the FL window does not kill the instrument.
+    host->setBounds(-24000, -24000, 640, 480);
+    host->setVisible(true);
 }
 
 void DreamDAWProcessor::layoutBrowser(juce::Rectangle<int> bounds)
@@ -314,10 +327,10 @@ void DreamDAWProcessor::layoutBrowser(juce::Rectangle<int> bounds)
         browser->setBounds(bounds);
 }
 
-juce::WebBrowserComponent& DreamDAWProcessor::getBrowser()
+juce::WebBrowserComponent* DreamDAWProcessor::getBrowser()
 {
     ensureBrowser();
-    return *browser;
+    return browser.get();
 }
 
 juce::AudioProcessorEditor* DreamDAWProcessor::createEditor()

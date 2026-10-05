@@ -12,11 +12,38 @@ DreamDAWEditor::DreamDAWEditor(DreamDAWProcessor& p)
     setSize(900, 640);
     setResizable(true, true);
     proc.attachEditor(*this);
+    startTimerHz(5);
 }
 
 DreamDAWEditor::~DreamDAWEditor()
 {
+    stopTimer();
     proc.detachEditor(*this);
+}
+
+void DreamDAWEditor::parentHierarchyChanged()
+{
+    proc.attachEditor(*this);
+    resized();
+}
+
+void DreamDAWEditor::visibilityChanged()
+{
+    if (isShowing())
+    {
+        proc.attachEditor(*this);
+        resized();
+    }
+}
+
+void DreamDAWEditor::timerCallback()
+{
+    // FL gives the editor its native window after the constructor. Re-parent
+    // until that peer exists so the site draws in the plugin, not a side window.
+    proc.attachEditor(*this);
+    resized();
+    if (++attachTicks > 20)
+        stopTimer();
 }
 
 void DreamDAWEditor::resized()
